@@ -1,54 +1,51 @@
-import "@shopify/shopify-app-remix/adapters/node";
+// Only import Node.js adapter for non-Cloudflare builds
+if (process.env.BUILD_TARGET !== 'cloudflare') {
+  require("@shopify/shopify-app-remix/adapters/node");
+}
 import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { DrizzleSessionStorage } from "./db/session-storage";
 import { createDatabaseClient } from "./db/client";
-import prisma from "./db.server";
 
 // Environment helper function to work with both Node.js and Cloudflare
 function getEnvVar(key: string, env?: any): string | undefined {
-  return env?.[key] || process.env[key];
+  return env?.[key] || (global as any).__CF_ENV__?.[key] || process.env[key];
 }
 
 // Create session storage based on environment
 function createSessionStorage(env?: any) {
-  // In Cloudflare Workers environment, always use Drizzle + D1
-  if (env?.DB) {
-    const db = createDatabaseClient(env);
-    return new DrizzleSessionStorage(db);
-  }
-
-  // Development environment: Use Prisma until better-sqlite3 bindings are fixed
-  // This maintains development workflow stability while keeping production on Drizzle+D1
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      // Try Drizzle first (if better-sqlite3 works)
-      const db = createDatabaseClient(env);
-      return new DrizzleSessionStorage(db);
-    } catch (error) {
-      // Fall back to Prisma for development if better-sqlite3 fails
-      console.log('📝 Using Prisma for development (better-sqlite3 bindings issue)');
-      return new PrismaSessionStorage(prisma);
-    }
-  }
-
-  // Production fallback: Use Drizzle
-  const db = createDatabaseClient(env);
-  return new DrizzleSessionStorage(db);
+  // Always use Drizzle + D1 for all environments
+  // - Development: Local D1 database via wrangler
+  // - Production: Remote D1 database via Cloudflare Workers
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const dbType = isDevelopment ? 'local D1' : 'remote D1';
+  
+  console.log(`🗄️ Using Drizzle + ${dbType} database for session storage`);
+  
+  // Use lazy initialization - don't create database client until first use
+  return new DrizzleSessionStorage(() => createDatabaseClient(env));
 }
 
 // Create shopify configuration function that accepts optional env parameter
 export function createShopifyConfig(env?: any) {
+  const appUrl = getEnvVar('SHOPIFY_APP_URL', env) || "";
+  console.log('🔧 Shopify config debug:', {
+    env,
+    global: (global as any).__CF_ENV__,
+    appUrl,
+    apiKey: getEnvVar('SHOPIFY_API_KEY', env),
+    scopes: getEnvVar('SCOPES', env)
+  });
+  
   return {
     apiKey: getEnvVar('SHOPIFY_API_KEY', env),
     apiSecretKey: getEnvVar('SHOPIFY_API_SECRET', env) || "",
     apiVersion: ApiVersion.January25,
     scopes: getEnvVar('SCOPES', env)?.split(","),
-    appUrl: getEnvVar('SHOPIFY_APP_URL', env) || "",
+    appUrl,
     authPathPrefix: "/auth",
     sessionStorage: createSessionStorage(env),
     distribution: AppDistribution.AppStore,
@@ -62,13 +59,71 @@ export function createShopifyConfig(env?: any) {
   };
 }
 
-const shopify = shopifyApp(createShopifyConfig());
+// Create a factory function to create shopify instance with environment
+export function createShopifyApp(env?: any) {
+  return shopifyApp(createShopifyConfig(env));
+}
 
-export default shopify;
+// For Cloudflare Workers, we need to initialize shopify per request
+// Global variable to store the shopify instance
+let shopifyInstance: ReturnType<typeof createShopifyApp> | null = null;
+
+// Function to get or create shopify instance
+function getShopifyInstance(env?: any) {
+  if (!shopifyInstance) {
+    // First time initialization with environment context
+    shopifyInstance = createShopifyApp(env);
+  }
+  return shopifyInstance;
+}
+
+// Helper function to get shopify instance with current environment context
+function getShopify(env?: any) {
+  // Always try to get the current environment context
+  const currentEnv = env || (global as any).__CF_ENV__;
+  
+  // If we're in Cloudflare Workers and have environment, recreate instance
+  if (currentEnv && typeof currentEnv === 'object') {
+    return createShopifyApp(currentEnv);
+  }
+  
+  // Fallback to cached instance or create new one
+  return getShopifyInstance(currentEnv);
+}
+
+// Create a proxy that always gets the current shopify instance
+const shopifyProxy = new Proxy({} as any, {
+  get(target, prop) {
+    const currentShopify = getShopify();
+    const value = currentShopify[prop as keyof typeof currentShopify];
+    return typeof value === 'function' ? value.bind(currentShopify) : value;
+  }
+});
+
+export default shopifyProxy;
 export const apiVersion = ApiVersion.January25;
-export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
-export const authenticate = shopify.authenticate;
-export const unauthenticated = shopify.unauthenticated;
-export const login = shopify.login;
-export const registerWebhooks = shopify.registerWebhooks;
-export const sessionStorage = shopify.sessionStorage;
+export const addDocumentResponseHeaders = (req: Request, headers: Headers) => 
+  getShopify().addDocumentResponseHeaders(req, headers);
+export const authenticate = new Proxy({} as any, {
+  get(target, prop) {
+    const shopify = getShopify();
+    return shopify.authenticate[prop as keyof typeof shopify.authenticate];
+  }
+});
+export const unauthenticated = new Proxy({} as any, {
+  get(target, prop) {
+    const shopify = getShopify();
+    return shopify.unauthenticated[prop as keyof typeof shopify.unauthenticated];
+  }
+});
+export const login = (req: Request) => getShopify().login(req);
+export const registerWebhooks = (options: any) => getShopify().registerWebhooks(options);
+export const sessionStorage = new Proxy({} as any, {
+  get(target, prop) {
+    const shopify = getShopify();
+    return shopify.sessionStorage[prop as keyof typeof shopify.sessionStorage];
+  }
+});
+
+// Export the helper function for routes that need to explicitly pass environment
+export { getShopify };

@@ -3,5 +3,5 @@ roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 
 [commands]
-predev = "bunx prisma generate"
-dev = "bunx prisma migrate deploy && npx remix vite:dev"
+predev = "echo 'Starting with Drizzle + local D1 database'"
+dev = "wrangler dev --config wrangler.jsonc --local"

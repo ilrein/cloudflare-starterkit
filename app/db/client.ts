@@ -1,27 +1,33 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { drizzle as drizzleBetterSQLite } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
 import * as schema from './schema';
 
-// Type for database client that works with both SQLite and D1
-export type DatabaseClient = ReturnType<typeof drizzle> | ReturnType<typeof drizzleBetterSQLite>;
+// Type for database client that works with D1
+export type DatabaseClient = ReturnType<typeof drizzle>;
 
 /**
  * Create database client based on environment
- * - Development: Uses better-sqlite3 with local SQLite file
- * - Production: Uses D1 database from Cloudflare Workers
+ * - Development: Uses local D1 database via wrangler
+ * - Production: Uses remote D1 database from Cloudflare Workers
  */
+// Global variable to cache the database client
+let databaseClientCache: DatabaseClient | null = null;
+
 export function createDatabaseClient(env?: { DB?: D1Database }): DatabaseClient {
-  // Check if we're in Cloudflare Workers environment with D1
-  if (env?.DB) {
-    // Production: Use D1 database
-    return drizzle(env.DB, { schema });
+  // Return cached client if available
+  if (databaseClientCache) {
+    return databaseClientCache;
   }
 
-  // Development: Use local SQLite database
-  // This path is used during Shopify CLI development
-  const sqlite = new Database('./prisma/dev.sqlite');
-  return drizzleBetterSQLite(sqlite, { schema });
+  // Try to get DB from provided env, global env, or throw error
+  const db = env?.DB || (global as any).__CF_ENV__?.DB;
+  
+  if (!db) {
+    throw new Error('D1 database binding not available. Make sure to run with wrangler or provide env.DB');
+  }
+
+  // Both development and production use D1 database
+  databaseClientCache = drizzle(db, { schema });
+  return databaseClientCache;
 }
 
 /**

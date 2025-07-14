@@ -3,10 +3,13 @@ import { installGlobals } from "@remix-run/node";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-installGlobals({ nativeFetch: true });
-
 // Check if we're building for Cloudflare
 const isCloudflare = process.env.BUILD_TARGET === 'cloudflare';
+
+// Only install Node.js globals for non-Cloudflare builds
+if (!isCloudflare) {
+  installGlobals({ nativeFetch: true });
+}
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the remix server. The CLI will eventually
@@ -67,6 +70,8 @@ export default defineConfig({
         serverBuildFile: "index.js",
         serverModuleFormat: "esm",
         serverPlatform: "neutral",
+        serverEntry: "app/entry.server.cloudflare.ts",
+        serverAdapter: "@remix-run/cloudflare",
       } : {})
     }),
     tsconfigPaths(),

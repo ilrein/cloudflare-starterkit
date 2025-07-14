@@ -34,53 +34,83 @@
 - **Session Storage**: Smart environment-aware adapter with automatic fallback
 - **Database Schema**: Sessions table created and ready for both environments
 
-### Session Storage Strategy
-- **Development**: Automatic fallback from Drizzle → Prisma (due to better-sqlite3 bindings)
-- **Production**: Drizzle + D1 (Cloudflare Workers environment)
-- **Fallback Logic**: Tries Drizzle first, falls back to Prisma on error
+### Session Storage Strategy (Unified)
+- **Development**: Drizzle + Local D1 database (via wrangler dev)
+- **Production**: Drizzle + Remote D1 database (Cloudflare Workers)
+- **Consistency**: Single ORM (Drizzle) and database type (D1) across all environments
 
-### Known Issues (Resolved)
-- **better-sqlite3 Native Bindings**: ✅ **Solved with smart fallback**
-  - Impact: Development automatically uses Prisma when Drizzle fails
-  - Production: Unaffected, uses D1 directly through Cloudflare Workers
-  - Developer Experience: Seamless, no manual intervention required
+### Architecture Benefits ✅
+- **Simplified Stack**: Removed better-sqlite3 and Prisma dependencies
+- **Environment Parity**: Development mirrors production exactly
+- **Single Source of Truth**: One database schema, one ORM, one migration system
+- **Developer Experience**: `bun run dev` now uses wrangler with local D1
 
 ## 🎯 Ready for Testing
 
 ### Next Steps
-1. **Create D1 Database**: Set up D1 database in Cloudflare dashboard and update wrangler.jsonc
-2. **Test Production Deployment**: Deploy to Cloudflare Workers and verify session storage
-3. **OAuth Flow Testing**: Ensure Shopify authentication works on Cloudflare Workers
-4. **Performance Validation**: Test app performance and session management
+
+#### 1. Create D1 Database
+```bash
+# Create D1 database in Cloudflare
+wrangler d1 create shopify-app-sessions
+
+# Copy the database ID from output and update wrangler.jsonc:
+# Replace "your-d1-database-id-here" with the actual ID
+
+# Apply migrations to D1
+bun run db:migrate:d1
+```
+
+#### 2. Test Production Deployment
+```bash
+# Build for Cloudflare Workers
+bun run build:cloudflare
+
+# Deploy to staging environment
+bun run deploy:cloudflare:staging
+
+# Test the deployed app functionality
+```
+
+#### 3. OAuth Flow Testing
+- Verify Shopify authentication works on Cloudflare Workers
+- Test session creation and retrieval
+- Confirm webhook handling
+
+#### 4. Performance Validation
+- Test app performance and session management
+- Monitor D1 database operations
+- Verify bundle size is within Workers limits
 
 ### Deployment Commands
 ```bash
-# Development (unchanged)
+# Development (now uses wrangler + local D1)
 bun run dev
 
-# Build for Cloudflare
+# Build for Cloudflare Workers
 bun run build:cloudflare
 
-# Deploy to Cloudflare
-bun run deploy:cloudflare
-
-# Deploy to staging/production
-bun run deploy:cloudflare:staging
-bun run deploy:cloudflare:production
+# Deploy to Cloudflare environments
+bun run deploy:cloudflare          # Default
+bun run deploy:cloudflare:staging  # Staging
+bun run deploy:cloudflare:production # Production
 ```
 
 ### Database Commands
 ```bash
-# Generate new migrations
+# Generate new migrations from schema
 bun run db:generate
 
-# Apply migrations to D1 (production)
+# Apply migrations to local D1 (development)
 bun run db:migrate:d1
 
-# Push schema directly to D1
+# Apply migrations to remote D1 (production)
+bun run db:migrate:d1:remote
+
+# Push schema directly to D1 (alternative to migrations)
 bun run db:push:d1
 
-# Open Drizzle Studio
+# Open Drizzle Studio for database inspection
 bun run db:studio
 ```
 

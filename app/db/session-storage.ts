@@ -9,15 +9,22 @@ import { sessions } from './schema';
  * Compatible with both SQLite (development) and D1 (production)
  */
 export class DrizzleSessionStorage implements SessionStorage {
-  private db: DatabaseClient;
+  private db: DatabaseClient | null = null;
 
-  constructor(db: DatabaseClient) {
-    this.db = db;
+  constructor(private createDb: () => DatabaseClient) {
+    // Don't initialize database client in constructor - do it lazily
+  }
+
+  private getDb(): DatabaseClient {
+    if (!this.db) {
+      this.db = this.createDb();
+    }
+    return this.db;
   }
 
   async loadSession(id: string): Promise<Session | undefined> {
     try {
-      const result = await this.db
+      const result = await this.getDb()
         .select()
         .from(sessions)
         .where(eq(sessions.id, id))
@@ -76,7 +83,7 @@ export class DrizzleSessionStorage implements SessionStorage {
       };
 
       // Use INSERT OR REPLACE for upsert functionality
-      await this.db
+      await this.getDb()
         .insert(sessions)
         .values(sessionData)
         .onConflictDoUpdate({
@@ -93,7 +100,7 @@ export class DrizzleSessionStorage implements SessionStorage {
 
   async deleteSession(id: string): Promise<boolean> {
     try {
-      await this.db
+      await this.getDb()
         .delete(sessions)
         .where(eq(sessions.id, id));
 
@@ -119,7 +126,7 @@ export class DrizzleSessionStorage implements SessionStorage {
 
   async findSessionsByShop(shop: string): Promise<Session[]> {
     try {
-      const results = await this.db
+      const results = await this.getDb()
         .select()
         .from(sessions)
         .where(eq(sessions.shop, shop));

@@ -12,6 +12,7 @@
   "vars": {
     // These should be overridden in production via environment-specific configs or secrets
     "SHOPIFY_API_KEY": "your-api-key-here",
+    "SHOPIFY_APP_URL": "http://localhost:8787",
     "SCOPES": "write_products",
     "NODE_ENV": "production"
   },
@@ -20,13 +21,13 @@
   // Example: wrangler secret put SHOPIFY_API_SECRET
   // Example: wrangler secret put SHOPIFY_APP_URL
   
-  // D1 Database for Sessions (replace with your database ID after creation)
-  // Run: wrangler d1 create shopify-app-sessions
+  // D1 Database for Sessions
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "shopify-app-sessions",
-      "database_id": "your-d1-database-id-here"
+      "database_name": "shopifykit",
+      "database_id": "43a715f1-9014-483f-b18b-7df9fa73dfc2",
+      "migrations_dir": "./app/db/migrations"
     }
   ],
 
