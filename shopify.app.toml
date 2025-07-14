@@ -3,7 +3,7 @@
 client_id = "d48a7fdb573e12a3ed57e17db2a7ddc5"
 name = "cloudflare-starterkit"
 handle = "cloudflare-starterkit"
-application_url = "https://helped-physician-gm-stations.trycloudflare.com"
+application_url = "https://scholar-numerous-involvement-msgid.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://helped-physician-gm-stations.trycloudflare.com/auth/callback",
-  "https://helped-physician-gm-stations.trycloudflare.com/auth/shopify/callback",
-  "https://helped-physician-gm-stations.trycloudflare.com/api/auth/callback"
+  "https://scholar-numerous-involvement-msgid.trycloudflare.com/auth/callback",
+  "https://scholar-numerous-involvement-msgid.trycloudflare.com/auth/shopify/callback",
+  "https://scholar-numerous-involvement-msgid.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

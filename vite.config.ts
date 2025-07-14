@@ -5,6 +5,9 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 installGlobals({ nativeFetch: true });
 
+// Check if we're building for Cloudflare
+const isCloudflare = process.env.BUILD_TARGET === 'cloudflare';
+
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the remix server. The CLI will eventually
 // stop passing in HOST, so we can remove this workaround after the next major release.
@@ -59,8 +62,12 @@ export default defineConfig({
         v3_throwAbortReason: true,
         v3_lazyRouteDiscovery: true,
         v3_singleFetch: false,
-        v3_routeConfig: true,
       },
+      ...(isCloudflare ? {
+        serverBuildFile: "index.js",
+        serverModuleFormat: "esm",
+        serverPlatform: "neutral",
+      } : {})
     }),
     tsconfigPaths(),
   ],

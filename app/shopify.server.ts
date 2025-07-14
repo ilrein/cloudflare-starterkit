@@ -7,23 +7,33 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
-const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.January25,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
-  authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
-  distribution: AppDistribution.AppStore,
-  future: {
-    unstable_newEmbeddedAuthStrategy: true,
-    removeRest: true,
-  },
-  ...(process.env.SHOP_CUSTOM_DOMAIN
-    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
-    : {}),
-});
+// Environment helper function to work with both Node.js and Cloudflare
+function getEnvVar(key: string, env?: any): string | undefined {
+  return env?.[key] || process.env[key];
+}
+
+// Create shopify configuration function that accepts optional env parameter
+export function createShopifyConfig(env?: any) {
+  return {
+    apiKey: getEnvVar('SHOPIFY_API_KEY', env),
+    apiSecretKey: getEnvVar('SHOPIFY_API_SECRET', env) || "",
+    apiVersion: ApiVersion.January25,
+    scopes: getEnvVar('SCOPES', env)?.split(","),
+    appUrl: getEnvVar('SHOPIFY_APP_URL', env) || "",
+    authPathPrefix: "/auth",
+    sessionStorage: new PrismaSessionStorage(prisma),
+    distribution: AppDistribution.AppStore,
+    future: {
+      unstable_newEmbeddedAuthStrategy: true,
+      removeRest: true,
+    },
+    ...(getEnvVar('SHOP_CUSTOM_DOMAIN', env)
+      ? { customShopDomains: [getEnvVar('SHOP_CUSTOM_DOMAIN', env)] }
+      : {}),
+  };
+}
+
+const shopify = shopifyApp(createShopifyConfig());
 
 export default shopify;
 export const apiVersion = ApiVersion.January25;

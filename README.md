@@ -12,7 +12,7 @@ Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app
 
 Before you begin, you'll need the following:
 
-1. **Node.js**: [Download and install](https://nodejs.org/en/download/) it if you haven't already.
+1. **Bun**: [Download and install](https://bun.sh/) it if you haven't already.
 2. **Shopify Partner Account**: [Create an account](https://partners.shopify.com/signup) if you don't have one.
 3. **Test Store**: Set up either a [development store](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store) or a [Shopify Plus sandbox store](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store) for testing your app.
 
@@ -20,42 +20,18 @@ Before you begin, you'll need the following:
 
 If you used the CLI to create the template, you can skip this section.
 
-Using yarn:
+Using bun:
 
 ```shell
-yarn install
-```
-
-Using npm:
-
-```shell
-npm install
-```
-
-Using pnpm:
-
-```shell
-pnpm install
+bun install
 ```
 
 ### Local Development
 
-Using yarn:
+Using bun:
 
 ```shell
-yarn dev
-```
-
-Using npm:
-
-```shell
-npm run dev
-```
-
-Using pnpm:
-
-```shell
-pnpm run dev
+bun run dev
 ```
 
 Press P to open the URL to your app. Once you click install, you can start development.
@@ -121,24 +97,12 @@ To use one of these, you can use a different [datasource provider](https://www.p
 
 ### Build
 
-Remix handles building the app for you, by running the command below with the package manager of your choice:
+Remix handles building the app for you, by running the command below:
 
-Using yarn:
-
-```shell
-yarn build
-```
-
-Using npm:
+Using bun:
 
 ```shell
-npm run build
-```
-
-Using pnpm:
-
-```shell
-pnpm run build
+bun run build
 ```
 
 ## Hosting
@@ -208,29 +172,17 @@ Shopify apps are best when they are embedded in the Shopify Admin, which is how 
 If you change your app's scopes and authentication goes into a loop and fails with a message from Shopify that it tried too many times, you might have forgotten to update your scopes with Shopify.
 To do that, you can run the `deploy` CLI command.
 
-Using yarn:
+Using bun:
 
 ```shell
-yarn deploy
-```
-
-Using npm:
-
-```shell
-npm run deploy
-```
-
-Using pnpm:
-
-```shell
-pnpm run deploy
+bun run deploy
 ```
 
 ### My shop-specific webhook subscriptions aren't updated
 
 If you are registering webhooks in the `afterAuth` hook, using `shopify.registerWebhooks`, you may find that your subscriptions aren't being updated.  
 
-Instead of using the `afterAuth` hook, the recommended approach is to declare app-specific webhooks in the `shopify.app.toml` file.  This approach is easier since Shopify will automatically update changes to webhook subscriptions every time you run `deploy` (e.g: `npm run deploy`).  Please read these guides to understand more:
+Instead of using the `afterAuth` hook, the recommended approach is to declare app-specific webhooks in the `shopify.app.toml` file.  This approach is easier since Shopify will automatically update changes to webhook subscriptions every time you run `deploy` (e.g: `bun run deploy`).  Please read these guides to understand more:
 
 1. [app-specific vs shop-specific webhooks](https://shopify.dev/docs/apps/build/webhooks/subscribe#app-specific-subscriptions)
 2. [Create a subscription tutorial](https://shopify.dev/docs/apps/build/webhooks/subscribe/get-started?framework=remix&deliveryMethod=https)
@@ -277,7 +229,7 @@ To test [streaming using defer/await](https://remix.run/docs/en/main/guides/stre
 1. First setup ngrok: https://ngrok.com/product/secure-tunnels
 2. Create an ngrok tunnel on port 8080: `ngrok http 8080`.
 3. Copy the forwarding address. This should be something like: `https://f355-2607-fea8-bb5c-8700-7972-d2b5-3f2b-94ab.ngrok-free.app`
-4. In a separate terminal run `yarn shopify app dev --tunnel-url=TUNNEL_URL:8080` replacing `TUNNEL_URL` for the address you copied in step 3.
+4. In a separate terminal run `bun run shopify app dev --tunnel-url=TUNNEL_URL:8080` replacing `TUNNEL_URL` for the address you copied in step 3.
 
 By default the CLI uses a cloudflare tunnel. Unfortunately it cloudflare tunnels wait for the Response stream to finish, then sends one chunk.
 
@@ -310,8 +262,8 @@ MongoDB does not support the [prisma migrate](https://www.prisma.io/docs/orm/pri
 
 ```toml
 [commands]
-predev = "npx prisma generate && npx prisma db push"
-dev = "npm exec remix vite:dev"
+predev = "bunx prisma generate && bunx prisma db push"
+dev = "bun exec remix vite:dev"
 ```
 
 #### Prisma needs to perform transactions, which requires your mongodb server to be run as a replica set

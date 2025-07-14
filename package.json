@@ -3,14 +3,17 @@
   "private": true,
   "scripts": {
     "build": "remix vite:build",
+    "build:cloudflare": "BUILD_TARGET=cloudflare remix vite:build",
     "dev": "shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
+    "deploy:cloudflare": "bun run build:cloudflare && wrangler deploy",
+    "preview:cloudflare": "wrangler dev",
     "config:use": "shopify app config use",
     "env": "shopify app env",
     "start": "remix-serve ./build/server/index.js",
-    "docker-start": "npm run setup && npm run start",
+    "docker-start": "bun run setup && bun run start",
     "setup": "prisma generate && prisma migrate deploy",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
     "shopify": "shopify",
@@ -40,6 +43,8 @@
     "vite-tsconfig-paths": "^5.0.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250712.0",
+    "@remix-run/cloudflare": "^2.16.8",
     "@remix-run/eslint-config": "^2.16.1",
     "@remix-run/route-config": "^2.16.1",
     "@shopify/api-codegen-preset": "^1.1.1",
@@ -51,7 +56,8 @@
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.2.4",
     "typescript": "^5.2.2",
-    "vite": "^6.2.2"
+    "vite": "^6.2.2",
+    "wrangler": "^4.24.3"
   },
   "workspaces": [
     "extensions/*"
